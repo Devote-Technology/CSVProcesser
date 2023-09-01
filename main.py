@@ -32,7 +32,7 @@ for index, row in df.iterrows():
     domain = get_domain_from_google(company_name, street_address)
     df.at[index, 'Company Domain Name'] = domain
 
-df.drop(['Error', 'Reason'], axis=1, inplace=True)
+df.drop(['Error code', 'Reason'], axis=1, inplace=True)
 
 try:
     df.to_csv(output_csv_path, index=False)
