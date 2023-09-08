@@ -24,6 +24,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/temp.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="#1e#" />
+            </Attribute>
+          </value>
+        </entry>
       </map>
     </option>
   </component>

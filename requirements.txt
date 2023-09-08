@@ -24,3 +24,4 @@ numpy==1.25.2
 six==1.16.0
 blinker==1.6.2
 sqlparse==0.4.4
+Flask-Cors==4.0.0

@@ -1,9 +1,13 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import pandas as pd
 import base64
 from googlesearch import search
 
+
+
 app = Flask(__name__)
+CORS(app)
 
 def get_domain_from_google(company_name, street_address, state):
     query = f"{company_name} official website based in {state} with {street_address}"
