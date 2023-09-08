@@ -3,11 +3,10 @@ import pandas as pd
 ## This is file a file to process csv files, it does not connect to flask and is used to process.
 csv_path = 'csvFiles/orgs-3.csv.errors.csv'
 output_csv_path = 'csvFiles/updatedFile.csv'
-State = "California"
 
 
-def get_domain_from_google(company_name, street_address):
-    query = f"{company_name} official website based in {State} with {street_address}"
+def get_domain_from_google(company_name, street_address, state):
+    query = f"{company_name} official website based in {state} with {street_address}"
     try:
         for j in gs_search(query):
             return j
@@ -33,7 +32,8 @@ drop_indices = []
 for index, row in df.iterrows():
     company_name = row['Company Name']
     street_address = row['Street Address']
-    domain = get_domain_from_google(company_name, street_address)
+    state = row['State']
+    domain = get_domain_from_google(company_name, street_address, state)
 
     if domain:  # If a domain is found
         drop_indices.append(index)

@@ -1,15 +1,12 @@
 from flask import Flask, request, jsonify
 import pandas as pd
+import base64
 from googlesearch import search
-### This file will connect to an api
-## instal googlesearch and beautfulsoup4
-## python3 -m pip install googlesearch-python
+
 app = Flask(__name__)
 
-State = "California"
-#Run python app.py
-def get_domain_from_google(company_name, street_address):
-    query = f"{company_name} official website based in {State} with {street_address}"
+def get_domain_from_google(company_name, street_address, state):
+    query = f"{company_name} official website based in {state} with {street_address}"
     try:
         for j in search(query):
             return j
@@ -21,26 +18,36 @@ def search_domain():
     data = request.json
     company_name = data.get("company_name", "")
     street_address = data.get("street_address", "")
-    result = get_domain_from_google(company_name, street_address)
+    state = data.get("state", "")
+    result = get_domain_from_google(company_name, street_address, state)
 
     if "error" in result:
         return jsonify({"status": "error", "message": result["error"]}), 400
 
     return jsonify({"status": "success", "domain": result})
 
-@app.route('/process_csv', methods=['GET'])
+@app.route('/process_csv', methods=['POST'])
 def process_csv():
-    csv_path = 'csvFiles/orgs-3.csv.errors.csv'
-    output_csv_path = 'csvFiles/updatedFile.csv'
+    data = request.json
+    encoded_csv = data.get("encoded_csv", "")
+    decoded_csv = base64.b64decode(encoded_csv)
+
+    temp_csv_path = 'temp.csv'
+    output_csv_path = 'updatedFile.csv'
+
+    with open(temp_csv_path, "wb") as f:
+        f.write(decoded_csv)
+
     try:
-        df = pd.read_csv(csv_path)
+        df = pd.read_csv(temp_csv_path)
     except FileNotFoundError:
-        return jsonify({"status": "error", "message": f"File {csv_path} not found."}), 400
+        return jsonify({"status": "error", "message": f"File {temp_csv_path} not found."}), 400
 
     for index, row in df.iterrows():
         company_name = row['Company Name']
         street_address = row['Street Address']
-        domain = get_domain_from_google(company_name, street_address)
+        state = row['State']
+        domain = get_domain_from_google(company_name, street_address, state)
         df.at[index, 'Company Domain Name'] = domain
 
     df.drop(['Error code', 'Reason'], axis=1, inplace=True)
@@ -50,8 +57,10 @@ def process_csv():
     except Exception as e:
         return jsonify({"status": "error", "message": f"An error occurred while writing to the CSV: {e}"}), 400
 
-    return jsonify({"status": "success", "message": "CSV processed successfully"})
+    with open(output_csv_path, "rb") as f:
+        encoded_output = base64.b64encode(f.read()).decode()
 
+    return jsonify({"status": "success", "encoded_csv": encoded_output})
 
 if __name__ == '__main__':
     app.run(debug=True)
