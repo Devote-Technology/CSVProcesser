@@ -1,7 +1,6 @@
 from googlesearch import search as gs_search
 import pandas as pd
 ## This is file a file to process csv files, it does not connect to flask and is used to process.
-##
 csv_path = 'csvFiles/orgs-3.csv.errors.csv'
 output_csv_path = 'csvFiles/updatedFile.csv'
 State = "California"
