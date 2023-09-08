@@ -33,7 +33,7 @@ def search_domain():
 @app.route('/process_csv', methods=['POST'])
 def process_csv():
     data = request.json
-    encoded_csv = data.get("encoded_csv", "")
+    encoded_csv = data.get("orgs", "")
     decoded_csv = base64.b64decode(encoded_csv)
 
     temp_csv_path = 'temp.csv'
