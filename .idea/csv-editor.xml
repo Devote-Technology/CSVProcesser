@@ -24,13 +24,6 @@
             </Attribute>
           </value>
         </entry>
-        <entry key="/temp.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="#1e#" />
-            </Attribute>
-          </value>
-        </entry>
         <entry key="/updatedFile.csv">
           <value>
             <Attribute>
