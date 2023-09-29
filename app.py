@@ -7,48 +7,42 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import SessionNotCreatedException, WebDriverException
 
-
-
 app = Flask(__name__)
 CORS(app)
-
 
 def get_domain_from_google(company_name, street_address, state):
     query = f"{company_name} official website based in {state} with {street_address}"
 
-    # Initialize the Chrome driver
     driver = webdriver.Chrome()
-
-    # Navigate to Google
     driver.get(f"https://www.google.com/search?q={query}")
 
     try:
-        # Print the page source for debugging
         print("----- Page Source Start -----")
         print(driver.page_source)
         print("----- Page Source End -----")
 
-        # Wait for the search result and get the domain
-        element = WebDriverWait(driver, 20).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "div > div > a > h3"))
+        elements = WebDriverWait(driver, 20).until(
+            EC.presence_of_all_elements_located((By.CSS_SELECTOR, "cite"))
         )
 
-        domain = element.get_attribute("href")
-        return domain
+        valid_domains = []
+        for element in elements:
+            domain = element.text
+            if domain:  # filter out empty or irrelevant domains
+                valid_domains.append(domain.split(" ")[0])
+
+        chosen_domain = valid_domains[0] if valid_domains else "No valid domain found"
+        print(f"Chosen domain: {chosen_domain}")
+
+        return chosen_domain
 
     except Exception as e:
         print(f"Exception while fetching domain: {e}")
-
-        # Capture screenshot
         driver.save_screenshot("screenshot.png")
-
         return {"error": str(e)}
 
     finally:
-        # Close the driver
         driver.quit()
-
-
 
 @app.route('/search_domain', methods=['POST'])
 def search_domain():
@@ -61,7 +55,6 @@ def search_domain():
     if "error" in result:
         return jsonify({"status": "error", "message": result["error"]}), 400
     return jsonify({"status": "success", "domain": result})
-
 
 @app.route('/process_csv', methods=['POST'])
 def process_csv():
@@ -91,7 +84,6 @@ def process_csv():
 
     output_data = df.to_dict('records')
     return jsonify({"status": "success", "orgs": output_data})
-
 
 if __name__ == '__main__':
     app.run(debug=True)
