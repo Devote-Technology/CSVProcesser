@@ -57,6 +57,9 @@ def search_domain():
         return jsonify({"status": "error", "message": result["error"]}), 400
     return jsonify({"status": "success", "domain": result})
 
+@app.route('/', methods=['POST'])
+def hello():
+    return jsonify({"message": "Hello World"})
 
 @app.route('/process_csv', methods=['POST'])
 def process_csv():
