@@ -31,6 +31,7 @@ def get_domain_from_google(company_name, street_address, state):
         chrome_options.binary_location = GOOGLE_CHROME_BIN
 
     driver = webdriver.Chrome(options=chrome_options)
+    query = f"{company_name} official website based in {state} with {street_address}"
     driver.get(f"https://www.google.com/search?q={query}")
 
     try:
