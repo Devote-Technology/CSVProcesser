@@ -42,7 +42,6 @@ app.config.update(
 )
 celery = make_celery(app)
 
-@celery.task(bind=True)
 def get_domain_from_google(company_name, street_address, state):
     chrome_options = Options()
     chrome_options.add_argument("--headless")
