@@ -7,15 +7,30 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import SessionNotCreatedException, WebDriverException
+
 
 app = Flask(__name__)
 CORS(app)
 
-def get_domain_from_google(company_name, street_address, state):
-    query = f"{company_name} official website based in {state} with {street_address}"
+GOOGLE_CHROME_BIN = os.environ.get("GOOGLE_CHROME_SHIM", None)
+CHROMEDRIVER_PATH = os.environ.get("CHROMEDRIVER_PATH", "/chromedriver")
 
-    driver = webdriver.Chrome()
+
+
+def get_domain_from_google(company_name, street_address, state):
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--no-sandbox")
+
+    GOOGLE_CHROME_BIN = os.environ.get("GOOGLE_CHROME_SHIM", None)
+
+    if GOOGLE_CHROME_BIN:
+        chrome_options.binary_location = GOOGLE_CHROME_BIN
+
+    driver = webdriver.Chrome(options=chrome_options)
     driver.get(f"https://www.google.com/search?q={query}")
 
     try:
