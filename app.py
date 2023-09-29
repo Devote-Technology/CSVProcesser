@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from io import StringIO
 from flask_cors import CORS
 import pandas as pd
 from selenium import webdriver
@@ -56,34 +57,40 @@ def search_domain():
         return jsonify({"status": "error", "message": result["error"]}), 400
     return jsonify({"status": "success", "domain": result})
 
+
 @app.route('/process_csv', methods=['POST'])
 def process_csv():
-    print("Starting Process")
-    data = request.json
-    orgs = data.get("orgs", [])
-    df = pd.DataFrame(orgs)
-
-    for index, row in df.iterrows():
-        print(f"Processing row {index}")
-        company_name = row['Company Name']
-        street_address = row['Street Address']
-        state = row['State']
-        domain = get_domain_from_google(company_name, street_address, state)
-        df.at[index, 'Company Domain Name'] = domain
-
-    columns_to_drop = ['Error code', 'Reason']
-    for col in columns_to_drop:
-        if col in df.columns:
-            df.drop([col], axis=1, inplace=True)
-
     try:
-        output_csv_path = 'updatedFile.csv'
-        df.to_csv(output_csv_path, index=False)
-    except Exception as e:
-        return jsonify({"status": "error", "message": f"An error occurred while writing to the CSV: {e}"}), 400
+        print("Starting Process")
+        data = request.json
+        orgs = data.get("orgs", [])
+        df = pd.DataFrame(orgs)
 
-    output_data = df.to_dict('records')
-    return jsonify({"status": "success", "orgs": output_data})
+        for index, row in df.iterrows():
+            print(f"Processing row {index}")
+            company_name = row['Company Name']
+            street_address = row['Street Address']
+            state = row['State']
+            domain = get_domain_from_google(company_name, street_address, state)
+            df.at[index, 'Company Domain Name'] = domain
+
+        columns_to_drop = ['Error code', 'Reason']
+        for col in columns_to_drop:
+            if col in df.columns:
+                df.drop([col], axis=1, inplace=True)
+
+        # Convert DataFrame to CSV string
+        csv_buffer = StringIO()
+        df.to_csv(csv_buffer, index=False)
+        csv_str = csv_buffer.getvalue()
+
+        # Return as part of the response
+        print("CSV String:", csv_str)
+        return jsonify({"status": "success", "csv": csv_str})
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return jsonify({"status": "error", "message": f"An error occurred: {e}"}), 400
 
 if __name__ == '__main__':
     app.run(debug=True)
