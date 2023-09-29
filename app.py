@@ -8,17 +8,41 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
+from celery import Celery
 from selenium.common.exceptions import SessionNotCreatedException, WebDriverException
-
 
 app = Flask(__name__)
 CORS(app)
+
+
+app.config.update(
+    CELERY_BROKER_URL='redis://localhost:6379/0',
+    CELERY_RESULT_BACKEND='redis://localhost:6379/0'
+)
+
+celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
+celery.conf.update(app.config)
 
 GOOGLE_CHROME_BIN = os.environ.get("GOOGLE_CHROME_SHIM", None)
 CHROMEDRIVER_PATH = os.environ.get("CHROMEDRIVER_PATH", "/chromedriver")
 
 
+def make_celery(app):
+    celery = Celery(
+        app.import_name,
+        backend=app.config['CELERY_RESULT_BACKEND'],
+        broker=app.config['CELERY_BROKER_URL']
+    )
+    celery.conf.update(app.config)
+    return celery
 
+app.config.update(
+    CELERY_BROKER_URL='redis://localhost:6379/0',
+    CELERY_RESULT_BACKEND='redis://localhost:6379/0'
+)
+celery = make_celery(app)
+
+@celery.task(bind=True)
 def get_domain_from_google(company_name, street_address, state):
     chrome_options = Options()
     chrome_options.add_argument("--headless")
@@ -81,37 +105,35 @@ def hello_world():
 
 @app.route('/process_csv', methods=['POST'])
 def process_csv():
-    try:
-        print("Starting Process")
-        data = request.json
-        orgs = data.get("orgs", [])
-        df = pd.DataFrame(orgs)
+    data = request.json
+    orgs = data.get("orgs", [])
+    task_ids = []
+    for org in orgs:
+        task = get_domain_from_google.apply_async(
+            args=[org['Company Name'], org['Street Address'], org['State']])
+        task_ids.append(str(task.id))
+    return jsonify({"status": "Tasks started", "task_ids": task_ids}), 202
 
-        for index, row in df.iterrows():
-            print(f"Processing row {index}")
-            company_name = row['Company Name']
-            street_address = row['Street Address']
-            state = row['State']
-            domain = get_domain_from_google(company_name, street_address, state)
-            df.at[index, 'Company Domain Name'] = domain
+@app.route('/task_status/<task_id>', methods=['GET'])
+def task_status(task_id):
+    task = get_domain_from_google.AsyncResult(task_id)
+    if task.state == 'PENDING':
+        response = {
+            'state': task.state,
+            'status': 'Task is still running'
+        }
+    elif task.state != 'FAILURE':
+        response = {
+            'state': task.state,
+            'result': task.result
+        }
+    else:
+        response = {
+            'state': task.state,
+            'status': str(task.info)
+        }
+    return jsonify(response)
 
-        columns_to_drop = ['Error code', 'Reason']
-        for col in columns_to_drop:
-            if col in df.columns:
-                df.drop([col], axis=1, inplace=True)
-
-        # Convert DataFrame to CSV string
-        csv_buffer = StringIO()
-        df.to_csv(csv_buffer, index=False)
-        csv_str = csv_buffer.getvalue()
-
-        # Return as part of the response
-        print("CSV String:", csv_str)
-        return jsonify({"status": "success", "csv": csv_str})
-
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return jsonify({"status": "error", "message": f"An error occurred: {e}"}), 400
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))  # Use port 5000 if PORT isn't set
