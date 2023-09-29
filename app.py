@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from io import StringIO
 from flask_cors import CORS
+import os
 import pandas as pd
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -97,4 +98,5 @@ def process_csv():
         return jsonify({"status": "error", "message": f"An error occurred: {e}"}), 400
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))  # Use port 5000 if PORT isn't set
+    app.run(host='0.0.0.0', port=port)
