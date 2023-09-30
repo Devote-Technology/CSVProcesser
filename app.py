@@ -20,8 +20,6 @@ app.config.update(
     CELERY_RESULT_BACKEND='redis://localhost:6379/0'
 )
 
-celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
-celery.conf.update(app.config)
 
 GOOGLE_CHROME_BIN = os.environ.get("GOOGLE_CHROME_SHIM", None)
 CHROMEDRIVER_PATH = os.environ.get("CHROMEDRIVER_PATH", "/chromedriver")
@@ -41,8 +39,8 @@ app.config.update(
     CELERY_RESULT_BACKEND='redis://localhost:6379/0'
 )
 celery = make_celery(app)
-
-def get_domain_from_google(company_name, street_address, state):
+@celery.task(bind=True)
+def get_domain_from_google(self, company_name, street_address, state):
     chrome_options = Options()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--disable-gpu")
